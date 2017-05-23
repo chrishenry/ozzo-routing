@@ -25,6 +25,9 @@ type Identity interface{}
 // Basic and Bearer.
 var DefaultRealm = "API"
 
+// Default header which the Token is passed
+var DefaultAuthenticationHeader = "Authorization"
+
 // BasicAuthFunc is the function that does the actual user authentication according to the given username and password.
 type BasicAuthFunc func(c *routing.Context, username, password string) (Identity, error)
 
@@ -198,6 +201,8 @@ type JWTOptions struct {
 	Realm string
 	// the allowed signing method. This is required and should be the actual method that you use to create JWT token. It defaults to "HS256".
 	SigningMethod string
+	// the header the token is passed in. Defaults to 'Authorization'
+	AuthenticationHeader string
 	// a function that handles the parsed JWT token. Defaults to DefaultJWTTokenHandler, which stores the token in the routing context with the key "JWT".
 	TokenHandler JWTTokenHandler
 	// a function to get a dynamic VerificationKey
@@ -262,6 +267,9 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	if opt.SigningMethod == "" {
 		opt.SigningMethod = "HS256"
 	}
+	if opt.AuthenticationHeader == "" {
+		opt.AuthenticationHeader = DefaultAuthenticationHeader
+	}
 	if opt.TokenHandler == nil {
 		opt.TokenHandler = DefaultJWTTokenHandler
 	}
@@ -269,7 +277,7 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 		ValidMethods: []string{opt.SigningMethod},
 	}
 	return func(c *routing.Context) error {
-		header := c.Request.Header.Get("Authorization")
+		header := c.Request.Header.Get(opt.AuthenticationHeader)
 		message := ""
 		if opt.GetVerificationKey != nil {
 			verificationKey = opt.GetVerificationKey(c)
